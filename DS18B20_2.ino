@@ -9,6 +9,7 @@
 /*-----( Declare Constants )-----*/
 #define ONE_WIRE_BUS_IN 2 /*-(Connect to Pin 2 )-*/
 #define ONE_WIRE_BUS_OUT 4 /*-(Connect to Pin 4 )-*/
+#define ONE_WIRE_BUS_AMB 6 /*-(Connect to Pin 6 )-*/
 
 // for the data logging shield, define pin number for the SD cs line
 const int chipSelect = 10; //Select pin 10
@@ -22,10 +23,12 @@ RTC_PCF8523 rtc; //Calling PCF8523 RTC
 /* Set up a oneWire instance to communicate with any OneWire device*/
 OneWire ourWireIn(ONE_WIRE_BUS_IN);
 OneWire ourWireOut(ONE_WIRE_BUS_OUT);
+OneWire ourWireAmb(ONE_WIRE_BUS_AMB);
 
 /* Tell Dallas Temperature Library to use oneWire Library */
 DallasTemperature sensorsIn(&ourWireIn);
 DallasTemperature sensorsOut(&ourWireOut);
+DallasTemperature sensorsAmb(&ourWireAmb);
 
 /*-----( Declare Variables )-----*/
 float sensor_in;
@@ -45,7 +48,8 @@ void setup() /*----( SETUP: RUNS ONCE )----*/
 
   /*-( Start up the DallasTemperature library )-*/
   sensorsIn.begin();
-  sensorsOut.begin(); 
+  sensorsOut.begin();
+  sensorsAmb.begin();
   
   //setup SD card
   Serial.print("Initializing SD card...");
@@ -67,6 +71,8 @@ void setup() /*----( SETUP: RUNS ONCE )----*/
     SensorData.print("Temperature IN");
     SensorData.print(",");
     SensorData.println("Temperature OUT");
+    SensorData.print(",");
+    SensorData.print("Temperature AMBIENT");
     SensorData.close();
   }   //end if
   else
@@ -82,6 +88,7 @@ void loop() /*----( LOOP: RUNS CONSTANTLY )----*/
   Serial.print("Requesting temperature...");
   sensorsIn.requestTemperatures(); // Send the command to get temperatures
   sensorsOut.requestTemperatures(); // Send the command to get temperatures
+  sensorsAmb.requestTemperatures(); // Send the command to get temperatures
   Serial.println("DONE");
 
   DateTime now = rtc.now();
@@ -89,6 +96,7 @@ void loop() /*----( LOOP: RUNS CONSTANTLY )----*/
   //Set variable values
   sensor_in = sensorsIn.getTempCByIndex(0);
   sensor_out = sensorsOut.getTempCByIndex(1);
+  sensor_amb = sensorsAmb.getTempCByIndex(2);
   
   //Open file to log data in.
   File SensorData = SD.open("test.txt", FILE_WRITE);
@@ -97,12 +105,17 @@ void loop() /*----( LOOP: RUNS CONSTANTLY )----*/
     //Print to serial monitor
     Serial.print("Date/Time : ");
     Serial.println(timestamp);
-    Serial.print("Device In = ");
+    
+    Serial.print("Internal Temperature = ");
     Serial.print(sensor_in);
     Serial.println(" Degrees C");
 
-    Serial.print("Device Out = ");
+    Serial.print("External Temperature = ");
     Serial.print(sensor_out);
+    Serial.println(" Degrees C");
+    
+    Serial.print("Ambient Temperature = ");
+    Serial.print(sensor_amb);
     Serial.println(" Degrees C");
   
     delay(1000);
@@ -114,6 +127,8 @@ void loop() /*----( LOOP: RUNS CONSTANTLY )----*/
     SensorData.print(sensor_in);
     SensorData.print(",");
     SensorData.println(sensor_out);
+    SensorData.print(",");
+    SensorData.print(sensor_amb);
     SensorData.close();
     Serial.println("DONE");
   }   //end if loop
